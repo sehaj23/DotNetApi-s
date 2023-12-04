@@ -1,0 +1,98 @@
+{
+  "format": 1,
+  "restore": {
+    "/Users/sehajchawla/Documents/dotnet/DotnetAPI/DotnetAPI.csproj": {}
+  },
+  "projects": {
+    "/Users/sehajchawla/Documents/dotnet/DotnetAPI/DotnetAPI.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/sehajchawla/Documents/dotnet/DotnetAPI/DotnetAPI.csproj",
+        "projectName": "DotnetAPI",
+        "projectPath": "/Users/sehajchawla/Documents/dotnet/DotnetAPI/DotnetAPI.csproj",
+        "packagesPath": "/Users/sehajchawla/.nuget/packages/",
+        "outputPath": "/Users/sehajchawla/Documents/dotnet/DotnetAPI/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/sehajchawla/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net7.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net7.0": {
+            "targetAlias": "net7.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net7.0": {
+          "targetAlias": "net7.0",
+          "dependencies": {
+            "Microsoft.AspNetCore.OpenApi": {
+              "target": "Package",
+              "version": "[7.0.0, )"
+            },
+            "Microsoft.Data.SqlClient": {
+              "target": "Package",
+              "version": "[5.1.2, )"
+            },
+            "Microsoft.EntityFrameworkCore.Relational": {
+              "target": "Package",
+              "version": "[7.0.7, )"
+            },
+            "Microsoft.EntityFrameworkCore.SqlServer": {
+              "target": "Package",
+              "version": "[7.0.0, )"
+            },
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[6.4.0, )"
+            },
+            "automapper": {
+              "target": "Package",
+              "version": "[12.0.1, )"
+            },
+            "dapper": {
+              "target": "Package",
+              "version": "[2.1.21, )"
+            },
+            "microsoft.entityframeworkcore": {
+              "target": "Package",
+              "version": "[7.0.7, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet/7.0.100/libexec/sdk/7.0.100/RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

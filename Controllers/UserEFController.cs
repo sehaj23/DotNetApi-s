@@ -110,23 +110,23 @@ public class UserEFController : ControllerBase
 
 
 	}
-	[HttpDelete("DeleteUserSalary/{userId}")]
-	public IActionResult deleteUser(int userId)
-	{
-		UsersSalary userDB = _userRespository.GetSingleUserSalary(userId);
-		if (userDB != null)
-		{
-			_userRespository.RemoveEntity<UsersSalary>(userDB);
-		}
-		if (_userRespository.SaveChanges())
-		{
-			return Ok();
-		}
+	// [HttpDelete("DeleteUserSalary/{userId}")]
+	// public IActionResult deleteUserSalary(int userId)
+	// {
+	// 	UsersSalary userDB = _userRespository.GetSingleUserSalary(userId);
+	// 	if (userDB != null)
+	// 	{
+	// 		_userRespository.RemoveEntity<UsersSalary>(userDB);
+	// 	}
+	// 	if (_userRespository.SaveChanges())
+	// 	{
+	// 		return Ok();
+	// 	}
 
-		throw new Exception("Failed to delete");
+	// 	throw new Exception("Failed to delete");
 
 
-	}
+	// }
 
 	[HttpGet("getUserSalary/{userId}")]
 	public UsersSalary GetUserSalary(int userId)

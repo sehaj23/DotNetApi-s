@@ -1,11 +1,23 @@
 namespace DotnetAPI.Dtos
 {
-partial class UserRegisterationDto
+public partial class UserRegisterationDto
 {
-	string Email {get;set;}
-	string Password {get;set;}
+	public string Email {get;set;}
+	public string Password {get;set;}
 	
-	string PasswordConfirm {get;set;}
+	public string PasswordConfirm {get;set;}
+	
+	public string FirstName { get; set; }
+
+		public string LastName { get; set; }
+
+
+		public string Gender { get; set; }
+
+
+
+
+		
 
 	public UserRegisterationDto()
 	{
@@ -21,6 +33,19 @@ partial class UserRegisterationDto
 		{
 			Email="";
 		}
+		if (FirstName == null)
+			{
+				FirstName = "";
+			}
+			if (LastName == null)
+			{
+				FirstName = "";
+			}
+			
+			if (Gender == null)
+			{
+				Gender = "";
+			}
 	}
 }
 

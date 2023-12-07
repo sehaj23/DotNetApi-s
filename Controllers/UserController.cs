@@ -64,24 +64,7 @@ public class UserController : ControllerBase
 	public IActionResult AddUser(UserDTO user)
 	{
 
-		string sql = @"INSERT INTO TutorialAppSchema.Users ([FirstName],
-[LastName],
-										[Email],
-										[Gender],
-										[Active]) VALUES (" +
-											"'" + user.FirstName +
-											"','" + user.LastName +
-											"','" + user.Email +
-											"','" + user.Gender +
-											"','" + user.Active +
-											"');";
-		Console.WriteLine(sql);
-
-		bool result = _dapper.Execute(sql);
-		if (result)
-		{
-			return Ok();
-		}
+	
 		return UnprocessableEntity();
 	}
 	[HttpDelete("DeleteUser/{userId}")]

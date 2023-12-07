@@ -1,11 +1,15 @@
 using System.Data;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using DotnetAPI.Data;
 using DotnetAPI.Dtos;
+using DotnetAPI.Models;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using Microsoft.IdentityModel.Tokens;
 
 namespace DotnetAPI.Controllers;
 
@@ -92,8 +96,13 @@ public class AuthController : ControllerBase
 				return StatusCode(401,"Incorrect Password!");
 			}
 		}
+		string getUser = "SELECT UserId FROM TutorialAppSchema.Users WHERE Email = '" + userLogin.Email + "'";;
+		int userData =  _dapper.LoadDataSingle<int>(getUser);
 		
-		return Ok();
+		return Ok(new Dictionary<string,string>
+		{
+			{"token",getToken(userData)}
+		});
 	}
 	
 	private byte[] getPasswordHash(string password,byte[] passwordSalt)
@@ -106,5 +115,28 @@ public class AuthController : ControllerBase
 			iterationCount: 10000,
 			numBytesRequested: 256 / 8
 			);
+	}
+	
+	private string getToken(int userId)
+	{
+		Claim[] claims1 = new Claim[] {
+			new Claim("userId",userId.ToString())
+		};
+		string token = _config.GetSection("AppSettings:TokenKey").Value;
+		SymmetricSecurityKey tokenKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(token));
+		
+		SigningCredentials signingCredentials =  new SigningCredentials(tokenKey,SecurityAlgorithms.HmacSha512Signature);
+		SecurityTokenDescriptor securityTokenDescriptor= new SecurityTokenDescriptor()
+		{
+			Subject= new ClaimsIdentity(claims1),
+			SigningCredentials=signingCredentials,
+			Expires=DateTime.Now.AddDays(5)	
+		
+		};
+		JwtSecurityTokenHandler jwtSecurityTokenHandler = new JwtSecurityTokenHandler();
+		
+		SecurityToken securityToken = jwtSecurityTokenHandler.CreateToken(securityTokenDescriptor);
+		
+		return jwtSecurityTokenHandler.WriteToken(securityToken);
 	}
 }

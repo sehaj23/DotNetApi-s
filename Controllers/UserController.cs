@@ -14,8 +14,6 @@ public class UserController : ControllerBase
 	private readonly IConfiguration config;
 	public UserController(IConfiguration config)
 	{
-
-		Console.WriteLine(config.GetConnectionString("defaultConnection"));
 		_dapper = new DataContext(config);
 	}
 	[HttpGet("test")]
@@ -49,7 +47,6 @@ public class UserController : ControllerBase
 			 "',[Gender] = '" + user.Gender +
 			 "',[Active]= '" + user.Active +
 			 "' WHERE UserId = " + user.UserId;
-		Console.WriteLine(sql);
 		bool result = _dapper.Execute(sql);
 		if (result)
 		{

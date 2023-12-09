@@ -18,8 +18,6 @@ public class UserEFController : ControllerBase
 	private readonly IConfiguration config;
 	public UserEFController(IConfiguration config, IUserRepository userRepository)
 	{
-
-		Console.WriteLine(config.GetConnectionString("defaultConnection"));
 		entityFrameWork = new DataContextEF(config);
 		_mapper = new Mapper(new MapperConfiguration(cfg =>
 		{

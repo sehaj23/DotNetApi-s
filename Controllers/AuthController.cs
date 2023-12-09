@@ -21,15 +21,14 @@ public class AuthController : ControllerBase
 {
 	private readonly DataContext _dapper;
 
-	private readonly IConfiguration _config;
-	
+
+
 	private readonly AuthHelper _authHelper;
 
 	public AuthController(IConfiguration configuration)
 	{
 		_dapper = new DataContext(configuration);
-		_config = configuration;
-		_authHelper =  new AuthHelper(configuration);
+		_authHelper = new AuthHelper(configuration);
 	}
 	[AllowAnonymous]
 	[HttpPost("Register")]
@@ -51,8 +50,8 @@ public class AuthController : ControllerBase
 		{
 			rng.GetNonZeroBytes(passwordSalt);
 		}
-		
-		byte[] passwordHash =_authHelper.getPasswordHash(userRegisteration.Password, passwordSalt);
+
+		byte[] passwordHash = _authHelper.getPasswordHash(userRegisteration.Password, passwordSalt);
 
 
 		string sqlToInsertInAuth = @"INSERT INTO TutorialAppSchema.Auth ([Email],[PasswordHash],[PasswordSalt]) VALUES 
@@ -112,7 +111,7 @@ public class AuthController : ControllerBase
 		});
 	}
 
-	
+
 
 	[HttpGet("refreshToken")]
 	public IActionResult refreshToken()

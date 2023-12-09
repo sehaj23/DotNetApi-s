@@ -6,13 +6,16 @@ using System.Text;
 using DotnetAPI.Data;
 using DotnetAPI.Dtos;
 using DotnetAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.IdentityModel.Tokens;
 
 namespace DotnetAPI.Controllers;
-
+[ApiController]
+[Route("[controller]")]
+[Authorize]
 
 public class AuthController : ControllerBase
 {
@@ -25,7 +28,7 @@ public class AuthController : ControllerBase
 		_dapper = new DataContext(configuration);
 		_config = configuration;
 	}
-
+	[AllowAnonymous]
 	[HttpPost("Register")]
 	public IActionResult Register(UserRegisterationDto userRegisteration)
 	{
@@ -45,9 +48,9 @@ public class AuthController : ControllerBase
 		{
 			rng.GetNonZeroBytes(passwordSalt);
 		}
-		byte[] passwordHash = getPasswordHash(userRegisteration.Password,passwordSalt);
+		byte[] passwordHash = getPasswordHash(userRegisteration.Password, passwordSalt);
 
-		
+
 		string sqlToInsertInAuth = @"INSERT INTO TutorialAppSchema.Auth ([Email],[PasswordHash],[PasswordSalt]) VALUES 
 	('" + userRegisteration.Email + "',@PasswordHash,@PasswordSalt)";
 		List<SqlParameter> sqlParameters = new List<SqlParameter>();
@@ -57,58 +60,58 @@ public class AuthController : ControllerBase
 		passwordHashsqlParamter.Value = passwordHash;
 		sqlParameters.Add(passwordSaltSqlParamter);
 		sqlParameters.Add(passwordHashsqlParamter);
-		bool result = _dapper.ExecuteWithSqlParameter(sqlToInsertInAuth,sqlParameters);
+		bool result = _dapper.ExecuteWithSqlParameter(sqlToInsertInAuth, sqlParameters);
 		if (result == false)
 		{
 			throw new Exception("Unable to insert in auth table");
 		}
-			string sqlToAddDetailsOfUser= @"INSERT INTO TutorialAppSchema.Users ([FirstName],
+		string sqlToAddDetailsOfUser = @"INSERT INTO TutorialAppSchema.Users ([FirstName],
 [LastName],
 										[Email],
 										[Gender],
 										[Active]) VALUES (" +
-											"'" + userRegisteration.FirstName +
-											"','" + userRegisteration.LastName +
-											"','" + userRegisteration.Email +
-											"','" + userRegisteration.Gender +
-											"','" + 1 +
-											"');";
-		
+										"'" + userRegisteration.FirstName +
+										"','" + userRegisteration.LastName +
+										"','" + userRegisteration.Email +
+										"','" + userRegisteration.Gender +
+										"','" + 1 +
+										"');";
+
 
 		bool resultToAddDetailsOfUser = _dapper.Execute(sqlToAddDetailsOfUser);
-		if (resultToAddDetailsOfUser==false)
+		if (resultToAddDetailsOfUser == false)
 		{
 			throw new Exception("Failed to Add Details Of user");
 		}
 		return Ok();
 	}
-
+	[AllowAnonymous]
 	[HttpPost("Login")]
 	public IActionResult Login(UserLoginDto userLogin)
 	{
 		string sqlToGetHashAndSalt = "SELECT [PasswordHash],[PasswordSalt] FROM TutorialAppSchema.Auth WHERE Email = '" + userLogin.Email + "'";
 		UserLoginConfirmationDto userLoginConfirmation = _dapper.LoadDataSingle<UserLoginConfirmationDto>(sqlToGetHashAndSalt);
-		byte[] passwordHash = getPasswordHash(userLogin.Password,userLoginConfirmation.PasswordSalt);
-		for(var i = 0;i<passwordHash.Length;i++)
+		byte[] passwordHash = getPasswordHash(userLogin.Password, userLoginConfirmation.PasswordSalt);
+		for (var i = 0; i < passwordHash.Length; i++)
 		{
-			if(passwordHash[i] != userLoginConfirmation.PasswordHash[i])
+			if (passwordHash[i] != userLoginConfirmation.PasswordHash[i])
 			{
-				return StatusCode(401,"Incorrect Password!");
+				return StatusCode(401, "Incorrect Password!");
 			}
 		}
-		string getUser = "SELECT UserId FROM TutorialAppSchema.Users WHERE Email = '" + userLogin.Email + "'";;
-		int userData =  _dapper.LoadDataSingle<int>(getUser);
-		
-		return Ok(new Dictionary<string,string>
+		string getUser = "SELECT UserId FROM TutorialAppSchema.Users WHERE Email = '" + userLogin.Email + "'"; ;
+		int userData = _dapper.LoadDataSingle<int>(getUser);
+
+		return Ok(new Dictionary<string, string>
 		{
 			{"token",getToken(userData)}
 		});
 	}
-	
-	private byte[] getPasswordHash(string password,byte[] passwordSalt)
+
+	private byte[] getPasswordHash(string password, byte[] passwordSalt)
 	{
 		string PasswordplusSalt = _config.GetSection("AppSettings:PasswordKey").Value + Convert.ToBase64String(passwordSalt);
-		return  KeyDerivation.Pbkdf2(
+		return KeyDerivation.Pbkdf2(
 			password: password,
 			salt: Encoding.ASCII.GetBytes(PasswordplusSalt),
 			prf: KeyDerivationPrf.HMACSHA256,
@@ -116,7 +119,7 @@ public class AuthController : ControllerBase
 			numBytesRequested: 256 / 8
 			);
 	}
-	
+
 	private string getToken(int userId)
 	{
 		Claim[] claims1 = new Claim[] {
@@ -124,19 +127,31 @@ public class AuthController : ControllerBase
 		};
 		string token = _config.GetSection("AppSettings:TokenKey").Value;
 		SymmetricSecurityKey tokenKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(token));
-		
-		SigningCredentials signingCredentials =  new SigningCredentials(tokenKey,SecurityAlgorithms.HmacSha512Signature);
-		SecurityTokenDescriptor securityTokenDescriptor= new SecurityTokenDescriptor()
+
+		SigningCredentials signingCredentials = new SigningCredentials(tokenKey, SecurityAlgorithms.HmacSha512Signature);
+		SecurityTokenDescriptor securityTokenDescriptor = new SecurityTokenDescriptor()
 		{
-			Subject= new ClaimsIdentity(claims1),
-			SigningCredentials=signingCredentials,
-			Expires=DateTime.Now.AddDays(5)	
-		
+			Subject = new ClaimsIdentity(claims1),
+			SigningCredentials = signingCredentials,
+			Expires = DateTime.Now.AddDays(5)
+
 		};
 		JwtSecurityTokenHandler jwtSecurityTokenHandler = new JwtSecurityTokenHandler();
-		
+
 		SecurityToken securityToken = jwtSecurityTokenHandler.CreateToken(securityTokenDescriptor);
-		
+
 		return jwtSecurityTokenHandler.WriteToken(securityToken);
+	}
+
+	[HttpGet("refreshToken")]
+	public IActionResult refreshToken()
+	{
+		string sqlGetUser = "SELECT UserId FROM TutorialAppSchema.Users WHERE UserId = '" + User.FindFirst("userId")?.Value + "'";
+		int userId = _dapper.LoadDataSingle<int>(sqlGetUser);
+
+		return Ok(new Dictionary<string, string>
+		{
+			{"token",getToken(userId)}
+		});
 	}
 }

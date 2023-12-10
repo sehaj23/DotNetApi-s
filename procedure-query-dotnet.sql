@@ -39,6 +39,6 @@ ON AvgSalary.department = UserJobInfo.Department
 WHERE Users.UserId =ISNULL(@UserId,Users.UserId) AND Users.Active = ISNULL(@active,Users.Active);
 END
 
- EXEC TutorialAppSchema.spUser_Get 2,1
+
 
 

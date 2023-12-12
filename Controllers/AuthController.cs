@@ -54,32 +54,41 @@ public class AuthController : ControllerBase
 		byte[] passwordHash = _authHelper.getPasswordHash(userRegisteration.Password, passwordSalt);
 
 
-		string sqlToInsertInAuth = @"INSERT INTO TutorialAppSchema.Auth ([Email],[PasswordHash],[PasswordSalt]) VALUES 
-	('" + userRegisteration.Email + "',@PasswordHash,@PasswordSalt)";
+		string sqlToInsertInAuth = @"
+			EXEC TutorialAppSchema.Auth_Upsert 
+			@Email='" + userRegisteration.Email +
+			"',@PasswordSalt = @PasswordSaltParam" +
+			",@PasswordHash = @PasswordHashParam";
+
 		List<SqlParameter> sqlParameters = new List<SqlParameter>();
-		SqlParameter passwordSaltSqlParamter = new SqlParameter("@PasswordSalt", SqlDbType.VarBinary);
+		SqlParameter passwordSaltSqlParamter = new SqlParameter("@PasswordSaltParam", SqlDbType.VarBinary);
 		passwordSaltSqlParamter.Value = passwordSalt;
-		SqlParameter passwordHashsqlParamter = new SqlParameter("@PasswordHash", SqlDbType.VarBinary);
-		passwordHashsqlParamter.Value = passwordHash;
 		sqlParameters.Add(passwordSaltSqlParamter);
+
+		SqlParameter passwordHashsqlParamter = new SqlParameter("@PasswordHashParam", SqlDbType.VarBinary);
+		passwordHashsqlParamter.Value = passwordHash;
 		sqlParameters.Add(passwordHashsqlParamter);
+
+		// SqlParameter emailParamter = new SqlParameter("@EmailParam", SqlDbType.VarChar);
+		// emailParamter.Value = userRegisteration.Email;
+		// sqlParameters.Add(emailParamter);
+	
+
 		bool result = _dapper.ExecuteWithSqlParameter(sqlToInsertInAuth, sqlParameters);
 		if (result == false)
 		{
 			throw new Exception("Unable to insert in auth table");
 		}
-		string sqlToAddDetailsOfUser = @"INSERT INTO TutorialAppSchema.Users ([FirstName],
-[LastName],
-										[Email],
-										[Gender],
-										[Active]) VALUES (" +
-										"'" + userRegisteration.FirstName +
-										"','" + userRegisteration.LastName +
-										"','" + userRegisteration.Email +
-										"','" + userRegisteration.Gender +
-										"','" + 1 +
-										"');";
-
+		string sqlToAddDetailsOfUser = @"
+			EXEC TutorialAppSchema.spUser_Upsert 
+			@FirstName='" + userRegisteration.FirstName +
+			"',@LastName = '" + userRegisteration.LastName +
+			"',@Email = '" + userRegisteration.Email +
+			"',@Gender = '" + userRegisteration.Gender +
+			"',@Active= 1" +
+			",@JobTitle= '" + userRegisteration.JobTitle +
+			"',@Department= '" + userRegisteration.Departments +
+			"',@Salary= '" + userRegisteration.Salary +"'";
 
 		bool resultToAddDetailsOfUser = _dapper.Execute(sqlToAddDetailsOfUser);
 		if (resultToAddDetailsOfUser == false)
@@ -124,4 +133,5 @@ public class AuthController : ControllerBase
 			{"token",_authHelper.getToken(userId)}
 		});
 	}
+
 }

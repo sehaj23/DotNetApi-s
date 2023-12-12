@@ -41,12 +41,14 @@ class DataContext
 
 	public bool ExecuteWithSqlParameter(string sql, List<SqlParameter> parameters)
 	{
-
+		
 		SqlCommand commandWithParams = new SqlCommand(sql);
 		foreach (SqlParameter parameter in parameters)
 		{
 			commandWithParams.Parameters.Add(parameter);
+				
 		}
+	
 		
 		SqlConnection db = new SqlConnection(_config.GetConnectionString("defaultConnection"));
 		db.Open();

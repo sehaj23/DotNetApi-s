@@ -1,15 +1,23 @@
+using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
+using DotnetAPI.Data;
+using DotnetAPI.Dtos;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using Microsoft.Data.SqlClient;
 using Microsoft.IdentityModel.Tokens;
 
 public class AuthHelper
 {
 	private readonly IConfiguration _config;
+	private readonly DataContext _dapper;
+	
 	public AuthHelper(IConfiguration config)
 	{
 		_config = config;
+		_dapper = new DataContext(config);
 	}
 	public byte[] getPasswordHash(string password, byte[] passwordSalt)
 	{
@@ -44,5 +52,41 @@ public class AuthHelper
 		SecurityToken securityToken = jwtSecurityTokenHandler.CreateToken(securityTokenDescriptor);
 
 		return jwtSecurityTokenHandler.WriteToken(securityToken);
+	}
+	
+	public bool SetPassword(UserLoginDto userLoginDto)
+	{
+		byte[] passwordSalt = new byte[128 / 8];
+		using RandomNumberGenerator rng = RandomNumberGenerator.Create();
+
+		{
+			rng.GetNonZeroBytes(passwordSalt);
+		}
+
+		byte[] passwordHash = getPasswordHash(userLoginDto.Password, passwordSalt);
+
+
+		string sqlToInsertInAuth = @"
+			EXEC TutorialAppSchema.Auth_Upsert 
+			@Email='" + userLoginDto.Email +
+			"',@PasswordSalt = @PasswordSaltParam" +
+			",@PasswordHash = @PasswordHashParam";
+
+		List<SqlParameter> sqlParameters = new List<SqlParameter>();
+		SqlParameter passwordSaltSqlParamter = new SqlParameter("@PasswordSaltParam", SqlDbType.VarBinary);
+		passwordSaltSqlParamter.Value = passwordSalt;
+		sqlParameters.Add(passwordSaltSqlParamter);
+
+		SqlParameter passwordHashsqlParamter = new SqlParameter("@PasswordHashParam", SqlDbType.VarBinary);
+		passwordHashsqlParamter.Value = passwordHash;
+		sqlParameters.Add(passwordHashsqlParamter);
+
+		// SqlParameter emailParamter = new SqlParameter("@EmailParam", SqlDbType.VarChar);
+		// emailParamter.Value = userRegisteration.Email;
+		// sqlParameters.Add(emailParamter);
+	
+
+		return _dapper.ExecuteWithSqlParameter(sqlToInsertInAuth, sqlParameters);
+		
 	}
 }

@@ -44,41 +44,17 @@ public class AuthController : ControllerBase
 		{
 			throw new Exception("User Already Exists!");
 		}
-		byte[] passwordSalt = new byte[128 / 8];
-		using RandomNumberGenerator rng = RandomNumberGenerator.Create();
-
+		UserLoginDto userLoginDto = new UserLoginDto()
 		{
-			rng.GetNonZeroBytes(passwordSalt);
-		}
-
-		byte[] passwordHash = _authHelper.getPasswordHash(userRegisteration.Password, passwordSalt);
-
-
-		string sqlToInsertInAuth = @"
-			EXEC TutorialAppSchema.Auth_Upsert 
-			@Email='" + userRegisteration.Email +
-			"',@PasswordSalt = @PasswordSaltParam" +
-			",@PasswordHash = @PasswordHashParam";
-
-		List<SqlParameter> sqlParameters = new List<SqlParameter>();
-		SqlParameter passwordSaltSqlParamter = new SqlParameter("@PasswordSaltParam", SqlDbType.VarBinary);
-		passwordSaltSqlParamter.Value = passwordSalt;
-		sqlParameters.Add(passwordSaltSqlParamter);
-
-		SqlParameter passwordHashsqlParamter = new SqlParameter("@PasswordHashParam", SqlDbType.VarBinary);
-		passwordHashsqlParamter.Value = passwordHash;
-		sqlParameters.Add(passwordHashsqlParamter);
-
-		// SqlParameter emailParamter = new SqlParameter("@EmailParam", SqlDbType.VarChar);
-		// emailParamter.Value = userRegisteration.Email;
-		// sqlParameters.Add(emailParamter);
-	
-
-		bool result = _dapper.ExecuteWithSqlParameter(sqlToInsertInAuth, sqlParameters);
-		if (result == false)
+			Email= userRegisteration.Email,
+			Password = userRegisteration.Password,
+			
+		};
+		if (_authHelper.SetPassword(userLoginDto)==false)
 		{
 			throw new Exception("Unable to insert in auth table");
 		}
+		
 		string sqlToAddDetailsOfUser = @"
 			EXEC TutorialAppSchema.spUser_Upsert 
 			@FirstName='" + userRegisteration.FirstName +
@@ -97,11 +73,24 @@ public class AuthController : ControllerBase
 		}
 		return Ok();
 	}
+	
+	[HttpPut("ResetPassword")]
+	public IActionResult ResetPassword(UserLoginDto userLogin)
+	{
+		if(_authHelper.SetPassword(userLogin))
+		{
+			return Ok();
+		};
+		throw new Exception("Unable to Update Password");
+		
+	}
+	
 	[AllowAnonymous]
 	[HttpPost("Login")]
 	public IActionResult Login(UserLoginDto userLogin)
 	{
-		string sqlToGetHashAndSalt = "SELECT [PasswordHash],[PasswordSalt] FROM TutorialAppSchema.Auth WHERE Email = '" + userLogin.Email + "'";
+		//string sqlToGetHashAndSalt = "SELECT [PasswordHash],[PasswordSalt] FROM TutorialAppSchema.Auth WHERE Email = '" + userLogin.Email + "'";
+		string sqlToGetHashAndSalt = "EXEC TutorialAppSchema.spLogin_Confirmation @Email='" + userLogin.Email.ToString() + "';";
 		UserLoginConfirmationDto userLoginConfirmation = _dapper.LoadDataSingle<UserLoginConfirmationDto>(sqlToGetHashAndSalt);
 		byte[] passwordHash = _authHelper.getPasswordHash(userLogin.Password, userLoginConfirmation.PasswordSalt);
 		for (var i = 0; i < passwordHash.Length; i++)

@@ -1,5 +1,6 @@
 namespace DotnetAPI.Data;
 
+using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -39,23 +40,25 @@ class DataContext
 		return db.Execute(sql);
 	}
 
-	public bool ExecuteWithSqlParameter(string sql, List<SqlParameter> parameters)
+	public bool ExecuteWithSqlParameter(string sql, DynamicParameters parameters)
 	{
-		
-		SqlCommand commandWithParams = new SqlCommand(sql);
-		foreach (SqlParameter parameter in parameters)
-		{
-			commandWithParams.Parameters.Add(parameter);
-				
-		}
 	
 		
 		SqlConnection db = new SqlConnection(_config.GetConnectionString("defaultConnection"));
-		db.Open();
-		commandWithParams.Connection = db;
-		int rowsAffected = commandWithParams.ExecuteNonQuery();
-		db.Close();
+		return db.Execute(sql,parameters) > 0;
 
-		return rowsAffected > 0;
+	
+	}
+	public IEnumerable<T> LoadDataWithParameters<T>(string sql,DynamicParameters dynamicParameters)
+	{
+		SqlConnection db = new SqlConnection(_config.GetConnectionString("defaultConnection"));
+
+		return db.Query<T>(sql,dynamicParameters);
+	}
+	public T LoadDataSinglWithParamterse<T>(string sql,DynamicParameters dynamicParameters)
+	{
+		SqlConnection db = new SqlConnection(_config.GetConnectionString("defaultConnection"));
+
+		return db.QuerySingle<T>(sql,dynamicParameters);
 	}
 }

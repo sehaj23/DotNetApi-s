@@ -3,6 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Dapper;
 using DotnetAPI.Data;
 using DotnetAPI.Dtos;
 using DotnetAPI.Models;
@@ -57,16 +58,24 @@ public class AuthController : ControllerBase
 		
 		string sqlToAddDetailsOfUser = @"
 			EXEC TutorialAppSchema.spUser_Upsert 
-			@FirstName='" + userRegisteration.FirstName +
-			"',@LastName = '" + userRegisteration.LastName +
-			"',@Email = '" + userRegisteration.Email +
-			"',@Gender = '" + userRegisteration.Gender +
-			"',@Active= 1" +
-			",@JobTitle= '" + userRegisteration.JobTitle +
-			"',@Department= '" + userRegisteration.Departments +
-			"',@Salary= '" + userRegisteration.Salary +"'";
+			@FirstName= @FirstNameParam
+			,@LastName= @LastNameParam 
+			,@Email = @EmailParam
+			,@Gender = @GenderParam
+			,@Active= 1
+			,@JobTitle= @JobTitleParam
+			,@Department= @DepartmentParam
+			,@Salary= @SalaryParam;";
+			DynamicParameters dynamicParameters = new DynamicParameters();
+			dynamicParameters.Add("@FirstNameParam",userRegisteration.FirstName);
+			dynamicParameters.Add("@LastNameParam ",userRegisteration.LastName);
+			dynamicParameters.Add("@EmailParam",userRegisteration.Email);
+			dynamicParameters.Add("@GenderParam",userRegisteration.Gender);
+			dynamicParameters.Add("@JobTitleParam",userRegisteration.JobTitle);
+			dynamicParameters.Add("@DepartmentParam",userRegisteration.Departments);
+			dynamicParameters.Add("@SalaryParam",userRegisteration.Salary);
 
-		bool resultToAddDetailsOfUser = _dapper.Execute(sqlToAddDetailsOfUser);
+		bool resultToAddDetailsOfUser = _dapper.ExecuteWithSqlParameter(sqlToAddDetailsOfUser,dynamicParameters);
 		if (resultToAddDetailsOfUser == false)
 		{
 			throw new Exception("Failed to Add Details Of user");
@@ -90,8 +99,10 @@ public class AuthController : ControllerBase
 	public IActionResult Login(UserLoginDto userLogin)
 	{
 		//string sqlToGetHashAndSalt = "SELECT [PasswordHash],[PasswordSalt] FROM TutorialAppSchema.Auth WHERE Email = '" + userLogin.Email + "'";
-		string sqlToGetHashAndSalt = "EXEC TutorialAppSchema.spLogin_Confirmation @Email='" + userLogin.Email.ToString() + "';";
-		UserLoginConfirmationDto userLoginConfirmation = _dapper.LoadDataSingle<UserLoginConfirmationDto>(sqlToGetHashAndSalt);
+		DynamicParameters dynamicParameters = new DynamicParameters();
+		string sqlToGetHashAndSalt = "EXEC TutorialAppSchema.spLogin_Confirmation @Email=@EmailParam;";
+		dynamicParameters.Add("@EmailParam",userLogin.Email,DbType.String);
+		UserLoginConfirmationDto userLoginConfirmation = _dapper.LoadDataSinglWithParamterse<UserLoginConfirmationDto>(sqlToGetHashAndSalt,dynamicParameters);
 		byte[] passwordHash = _authHelper.getPasswordHash(userLogin.Password, userLoginConfirmation.PasswordSalt);
 		for (var i = 0; i < passwordHash.Length; i++)
 		{
@@ -100,8 +111,10 @@ public class AuthController : ControllerBase
 				return StatusCode(401, "Incorrect Password!");
 			}
 		}
-		string getUser = "SELECT UserId FROM TutorialAppSchema.Users WHERE Email = '" + userLogin.Email + "'"; ;
-		int userData = _dapper.LoadDataSingle<int>(getUser);
+		string getUser = "SELECT UserId FROM TutorialAppSchema.Users WHERE Email = @EmailParam";
+		
+		
+		int userData = _dapper.LoadDataSinglWithParamterse<int>(getUser,dynamicParameters);
 
 		return Ok(new Dictionary<string, string>
 		{

@@ -3,6 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Dapper;
 using DotnetAPI.Data;
 using DotnetAPI.Dtos;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
@@ -68,25 +69,25 @@ public class AuthHelper
 
 		string sqlToInsertInAuth = @"
 			EXEC TutorialAppSchema.Auth_Upsert 
-			@Email='" + userLoginDto.Email +
-			"',@PasswordSalt = @PasswordSaltParam" +
-			",@PasswordHash = @PasswordHashParam";
+			@Email=@EmailParam,@PasswordSalt = @PasswordSaltParam ,@PasswordHash = @PasswordHashParam";
 
-		List<SqlParameter> sqlParameters = new List<SqlParameter>();
-		SqlParameter passwordSaltSqlParamter = new SqlParameter("@PasswordSaltParam", SqlDbType.VarBinary);
-		passwordSaltSqlParamter.Value = passwordSalt;
-		sqlParameters.Add(passwordSaltSqlParamter);
-
-		SqlParameter passwordHashsqlParamter = new SqlParameter("@PasswordHashParam", SqlDbType.VarBinary);
-		passwordHashsqlParamter.Value = passwordHash;
-		sqlParameters.Add(passwordHashsqlParamter);
+		// List<SqlParameter> sqlParameters = new List<SqlParameter>();
+		DynamicParameters dynamicParameters = new DynamicParameters();
+		dynamicParameters.Add("@PasswordSaltParam",passwordSalt,dbType:DbType.Binary);
+		dynamicParameters.Add("@PasswordHashParam",passwordHash,dbType:DbType.Binary);
+		dynamicParameters.Add("@EmailParam",userLoginDto.Email,dbType:DbType.String);
+		//passwordSaltSqlParamter.Value = passwordSalt;
+		
+		// SqlParameter passwordHashsqlParamter = new SqlParameter("@PasswordHashParam", SqlDbType.VarBinary);
+		// passwordHashsqlParamter.Value = passwordHash;
+		// sqlParameters.Add(passwordHashsqlParamter);
 
 		// SqlParameter emailParamter = new SqlParameter("@EmailParam", SqlDbType.VarChar);
 		// emailParamter.Value = userRegisteration.Email;
 		// sqlParameters.Add(emailParamter);
 	
 
-		return _dapper.ExecuteWithSqlParameter(sqlToInsertInAuth, sqlParameters);
+		return _dapper.ExecuteWithSqlParameter(sqlToInsertInAuth, dynamicParameters);
 		
 	}
 }

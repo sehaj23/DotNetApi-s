@@ -1,3 +1,5 @@
+using System.Data;
+using Dapper;
 using DotnetAPI.Data;
 using DotnetAPI.Dtos;
 using DotnetAPI.Models;
@@ -20,12 +22,14 @@ public class UserCompleteController : ControllerBase
 	public IEnumerable<UserComplete> GetAllUsers(int userId)
 	{
 		string sql = "EXEC TutorialAppSchema.spUser_Get ";
+		DynamicParameters dynamicParameters = new DynamicParameters();
 		string parameter = "";
 		if (userId != 0)
 		{
-			sql += "@userId=" + userId;
+			dynamicParameters.Add("@userIdParam",userId,DbType.Int32);
+			sql += "@UserId=@userIdParam";
 		}
-		return _dapper.LoadData<UserComplete>(sql);
+		return _dapper.LoadDataWithParameters<UserComplete>(sql,dynamicParameters);
 		//return new string[] {"user1","user2",value};
 	}
 
@@ -35,16 +39,26 @@ public class UserCompleteController : ControllerBase
 
 		string sql = @"
 			EXEC TutorialAppSchema.spUser_Upsert 
-			@FirstName='" + user.FirstName +
-			"',@LastName = '" + user.LastName +
-			"',@Email = '" + user.Email +
-			"',@Gender = '" + user.Gender +
-			"',@Active= '" + user.Active +
-			"',@JobTitle= '" + user.JobTitle +
-			"',@Department= '" + user.Departments +
-			"',@Salary= '" + user.Salary +
-			"',@UserId= '" + user.UserId;
-		bool result = _dapper.Execute(sql);
+			@FirstName= @FirstNameParam
+			,@LastName= @LastNameParam 
+			,@Email = @EmailParam
+			,@Gender = @GenderParam
+			,@Active= 1
+			,@JobTitle= @JobTitleParam
+			,@Department= @DepartmentParam
+			,@Salary= @SalaryParam
+			,@UserId= @UserIdParam";
+			DynamicParameters dynamicParameters = new DynamicParameters();
+			dynamicParameters.Add("@FirstNameParam",user.FirstName);
+			dynamicParameters.Add("@LastNameParam ",user.LastName);
+			dynamicParameters.Add("@EmailParam",user.Email);
+			dynamicParameters.Add("@GenderParam",user.Gender);
+			dynamicParameters.Add("@JobTitleParam",user.JobTitle);
+			dynamicParameters.Add("@DepartmentParam",user.Departments);
+			dynamicParameters.Add("@SalaryParam",user.Salary);
+			dynamicParameters.Add("@UserIdParam",user.UserId.ToString());
+
+		bool result = _dapper.ExecuteWithSqlParameter(sql,dynamicParameters);
 		if (result)
 		{
 			return Ok();

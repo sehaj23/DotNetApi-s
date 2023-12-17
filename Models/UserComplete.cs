@@ -19,7 +19,7 @@ namespace DotnetAPI.Models
 		public string Departments { get; set; }
 		public int Salary  {get;set;}
 		
-		public int avgSalary {get;set;}
+	//	public int avgSalary {get;set;}
 
 
 		public UserComplete()

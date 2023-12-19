@@ -3,9 +3,11 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using AutoMapper;
 using Dapper;
 using DotnetAPI.Data;
 using DotnetAPI.Dtos;
+using DotnetAPI.Helpers;
 using DotnetAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
@@ -21,15 +23,22 @@ namespace DotnetAPI.Controllers;
 public class AuthController : ControllerBase
 {
 	private readonly DataContext _dapper;
+	private readonly IMapper _mapper;
 
 
 
 	private readonly AuthHelper _authHelper;
+	private readonly ReusableSql _reusableSql;
 
 	public AuthController(IConfiguration configuration)
 	{
 		_dapper = new DataContext(configuration);
 		_authHelper = new AuthHelper(configuration);
+		_reusableSql = new ReusableSql(configuration);
+		_mapper = new Mapper(new MapperConfiguration(cfg =>
+		{
+			cfg.CreateMap<UserRegisterationDto, UserComplete>();
+		}));
 	}
 	[AllowAnonymous]
 	[HttpPost("Register")]
@@ -47,53 +56,34 @@ public class AuthController : ControllerBase
 		}
 		UserLoginDto userLoginDto = new UserLoginDto()
 		{
-			Email= userRegisteration.Email,
+			Email = userRegisteration.Email,
 			Password = userRegisteration.Password,
-			
+
 		};
-		if (_authHelper.SetPassword(userLoginDto)==false)
+		if (_authHelper.SetPassword(userLoginDto) == false)
 		{
 			throw new Exception("Unable to insert in auth table");
 		}
-		
-		string sqlToAddDetailsOfUser = @"
-			EXEC TutorialAppSchema.spUser_Upsert 
-			@FirstName= @FirstNameParam
-			,@LastName= @LastNameParam 
-			,@Email = @EmailParam
-			,@Gender = @GenderParam
-			,@Active= 1
-			,@JobTitle= @JobTitleParam
-			,@Department= @DepartmentParam
-			,@Salary= @SalaryParam;";
-			DynamicParameters dynamicParameters = new DynamicParameters();
-			dynamicParameters.Add("@FirstNameParam",userRegisteration.FirstName);
-			dynamicParameters.Add("@LastNameParam ",userRegisteration.LastName);
-			dynamicParameters.Add("@EmailParam",userRegisteration.Email);
-			dynamicParameters.Add("@GenderParam",userRegisteration.Gender);
-			dynamicParameters.Add("@JobTitleParam",userRegisteration.JobTitle);
-			dynamicParameters.Add("@DepartmentParam",userRegisteration.Departments);
-			dynamicParameters.Add("@SalaryParam",userRegisteration.Salary);
+		UserComplete userComplete = _mapper.Map<UserComplete>(userRegisteration);
 
-		bool resultToAddDetailsOfUser = _dapper.ExecuteWithSqlParameter(sqlToAddDetailsOfUser,dynamicParameters);
-		if (resultToAddDetailsOfUser == false)
+		if (!_reusableSql.updateUser(userComplete))
 		{
 			throw new Exception("Failed to Add Details Of user");
 		}
 		return Ok();
 	}
-	
+
 	[HttpPut("ResetPassword")]
 	public IActionResult ResetPassword(UserLoginDto userLogin)
 	{
-		if(_authHelper.SetPassword(userLogin))
+		if (_authHelper.SetPassword(userLogin))
 		{
 			return Ok();
 		};
 		throw new Exception("Unable to Update Password");
-		
+
 	}
-	
+
 	[AllowAnonymous]
 	[HttpPost("Login")]
 	public IActionResult Login(UserLoginDto userLogin)
@@ -101,8 +91,8 @@ public class AuthController : ControllerBase
 		//string sqlToGetHashAndSalt = "SELECT [PasswordHash],[PasswordSalt] FROM TutorialAppSchema.Auth WHERE Email = '" + userLogin.Email + "'";
 		DynamicParameters dynamicParameters = new DynamicParameters();
 		string sqlToGetHashAndSalt = "EXEC TutorialAppSchema.spLogin_Confirmation @Email=@EmailParam;";
-		dynamicParameters.Add("@EmailParam",userLogin.Email,DbType.String);
-		UserLoginConfirmationDto userLoginConfirmation = _dapper.LoadDataSinglWithParamterse<UserLoginConfirmationDto>(sqlToGetHashAndSalt,dynamicParameters);
+		dynamicParameters.Add("@EmailParam", userLogin.Email, DbType.String);
+		UserLoginConfirmationDto userLoginConfirmation = _dapper.LoadDataSinglWithParamterse<UserLoginConfirmationDto>(sqlToGetHashAndSalt, dynamicParameters);
 		byte[] passwordHash = _authHelper.getPasswordHash(userLogin.Password, userLoginConfirmation.PasswordSalt);
 		for (var i = 0; i < passwordHash.Length; i++)
 		{
@@ -112,9 +102,9 @@ public class AuthController : ControllerBase
 			}
 		}
 		string getUser = "SELECT UserId FROM TutorialAppSchema.Users WHERE Email = @EmailParam";
-		
-		
-		int userData = _dapper.LoadDataSinglWithParamterse<int>(getUser,dynamicParameters);
+
+
+		int userData = _dapper.LoadDataSinglWithParamterse<int>(getUser, dynamicParameters);
 
 		return Ok(new Dictionary<string, string>
 		{

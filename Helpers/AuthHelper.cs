@@ -9,7 +9,7 @@ using DotnetAPI.Dtos;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.Data.SqlClient;
 using Microsoft.IdentityModel.Tokens;
-
+namespace DotnetAPI.Helpers;
 public class AuthHelper
 {
 	private readonly IConfiguration _config;

@@ -22,6 +22,13 @@ public class UserController : ControllerBase
 		return _dapper.LoadDataSingle<DateTime>("SELECT GETDATE()");
 	}
 
+[HttpGet("testConnection")]
+	public String testConnectionString()
+	{
+		return "Your Application is running";
+	}
+	
+
 	[HttpGet("getUsers/{userId}")]
 	public User GetUser(int userId)
 	{
